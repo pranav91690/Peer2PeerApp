@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -10,7 +9,6 @@ import java.util.Random;
  * Created by pranav on 11/8/15.
  */
 public class SendChunks implements Runnable{
-    // Instance Variables -- The ClientSocket and the MasterList
     Socket clientSocket;
     List<Chunk> MasterList;
     int numberOfChunks;
@@ -41,15 +39,14 @@ public class SendChunks implements Runnable{
         // Serialize this Object and send to Client
         try
         {
-            System.out.println("Sending Serialized Data to the Client");
             // Get the Output stream of the Client Stream
             ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
             // Write the Object in our Stream
             outputStream.writeObject(serverMessage);
+            // Close the outputStream
             outputStream.close();
-            System.out.printf("Serialized data sent to Client Socket");
         }catch(IOException i) {
-            i.printStackTrace();
+            System.out.println("Cannot connect to Client OutputStream");
         }
     }
 }
