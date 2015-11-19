@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,14 +33,16 @@ public class Server {
             // Split the File
             server.splitFile(file);
 
+//         TESTING PURPOSE ONLY
+//            server.mergeFiles();
+
             // Start Listening on Server Port -- This might be a constant or given as command line argument
+            // Step 2 -- Run the Server and wait for incoming requests
+            server.run(4000);
 
         }catch (Exception e){
             System.out.println(e);
         }
-
-        // Step 2 -- Run the Server and wait for incoming requests
-        server.run(4000);
     }
 
     public void run(int serverPort){
@@ -57,7 +60,7 @@ public class Server {
                     Socket clientSocket = server.accept();
 
                     // Create a New Thread to Serve the Client
-                    Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks);
+                    Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf");
 
                     // Start a new Thread with MasterList
                     new Thread(r).start();
@@ -103,16 +106,18 @@ public class Server {
                 // Decrease the File Size
                 fileSize -= chunkSize;
 
-                //Write each chunk of data into separate file with different number in name
-                File newFile = new File(file.getParent(), name + "." + String.format("%03d", partCounter));
-
-                //Create an File Output Stream
-                FileOutputStream outputStream = new FileOutputStream(newFile);
-                outputStream.write(buffer);
-                outputStream.close();
+// ************  Do we Need Split Files in the Local Machine ******************************************
+//                //Write each chunk of data into separate file with different number in name
+//                File newFile = new File(file.getParent(), name + "." + String.format("%03d", partCounter));
+//
+//                //Create an File Output Stream
+//                FileOutputStream outputStream = new FileOutputStream(newFile);
+//                outputStream.write(buffer);
+//                outputStream.close();
+// ****************************************************************************************************
 
                 // Store the MasterList in the Master List
-                Chunk chunk = new Chunk(partCounter, newFile);
+                Chunk chunk = new Chunk(partCounter, buffer);
                 MasterList.add(chunk);
                 numberOfChunks++;
 
@@ -124,14 +129,12 @@ public class Server {
 
     }
 
-
     public void mergeFiles() throws IOException{
         // Create a New File Output Stream at this path
         FileOutputStream fos = new FileOutputStream("merged.pdf");
         try(BufferedOutputStream mergeStream = new BufferedOutputStream(fos)){
             for(Chunk c : MasterList){
-                // Merge The Files into a Single Stream
-                Files.copy(c.file.toPath(), mergeStream);
+                mergeStream.write(c.bytes);
             }
 
             // Close the Merge Stream

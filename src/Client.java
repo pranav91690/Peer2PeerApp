@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,15 +17,17 @@ public class Client {
     // File Owner Listening Port
     int serverListeningPort;
 
-
     // Download Neighbour Listening Port
     int downloadNeighbourPort;//Get this from the BootStrap Server
 
     // Number of Chunks
-    Integer numberOfChunks;   //Number of Chunks in the Input File
+    int numberOfChunks;   //Number of Chunks in the Input File
 
     // List of Chunks
     List<Chunk> chunks;       //Present List of Chunks
+
+    // Current Number of Chunks with us
+    int currentChunks;
 
     // Summary File
     List<Integer> chunkIDs;   //Summary List of the Chunk ID's
@@ -44,6 +47,9 @@ public class Client {
 
         // Run the Client
         client.run();
+
+        // Wait Here
+        System.out.println("Stop Here");
     }
 
     void run(){
@@ -71,6 +77,41 @@ public class Client {
             System.out.println("Unrecognized Object Received from the Stream");
         }
 
+
+        // Create the Summary File and Update it
+        chunkIDs = new ArrayList<>();
+        updateSummaryList();
+
         // Step 3 -- Start the Server/Client Threads
+        // Create a Thread to Keep Listening on ClientListeningPOrt
+        Runnable upload = new ListenForUpload(clientListeningPort);
+        new Thread(upload).start();
+
+        //Create a Thread to Connect to Download Neighbour
+        Runnable download = new ConnectToDownload(downloadNeighbourPort);
+        new Thread(download).start();
+    }
+
+    public void updateSummaryList(){
+        if(!chunks.isEmpty()) {
+            for (Chunk c : chunks) {
+                chunkIDs.add(c.chunkID);
+            }
+        }
+    }
+
+    public void mergeFiles() throws IOException{
+        // Create a New File Output Stream at this path
+        FileOutputStream fos = new FileOutputStream("merged.pdf");
+        try(BufferedOutputStream mergeStream = new BufferedOutputStream(fos)){
+            // Sort the Client According to the Client ID Numbers before Combining
+            for(Chunk c : chunks){
+                mergeStream.write(c.bytes);
+            }
+
+            // Close the Merge Stream
+            mergeStream.close();
+        }
+
     }
 }

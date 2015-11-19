@@ -12,11 +12,13 @@ public class SendChunks implements Runnable{
     Socket clientSocket;
     List<Chunk> MasterList;
     int numberOfChunks;
+    String fileType;
 
-    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks) {
+    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks, String fileType) {
         this.clientSocket = clientSocket;
         MasterList = masterList;
         this.numberOfChunks = numberOfChunks;
+        this.fileType = fileType;
     }
 
     public void run(){
@@ -34,7 +36,10 @@ public class SendChunks implements Runnable{
         }
 
         // Object to be sent to the Client
-        FileOwnerToPeer serverMessage = new FileOwnerToPeer(numberOfChunks,chunks);
+        FileOwnerToPeer serverMessage = new FileOwnerToPeer(numberOfChunks,chunks,fileType);
+
+        // For TESTING Purpose Only
+//        FileOwnerToPeer serverMessage = new FileOwnerToPeer(numberOfChunks,MasterList);
 
         // Serialize this Object and send to Client
         try

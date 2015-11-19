@@ -8,10 +8,15 @@ import java.net.Socket;
 
 // This is the thread that listens to the Upload Neighbour
 public class ListenForUpload implements Runnable {
-    ServerSocket peerListeningPort;
+    ServerSocket peerSocket;
 
-    public ListenForUpload(ServerSocket peerSocket) {
-        this.peerListeningPort = peerSocket;
+    public ListenForUpload(int peerListeningPort) {
+        // Create a New Socket
+        try {
+            this.peerSocket = new ServerSocket(peerListeningPort);
+        }catch (IOException e){
+            System.out.println("Cannot Create a Peer Socket");
+        }
     }
 
     public void run(){
@@ -20,7 +25,7 @@ public class ListenForUpload implements Runnable {
             boolean keepListening = true;
 
             while (keepListening) {
-                Socket uploadNeigbour = peerListeningPort.accept();
+                Socket uploadNeigbour = peerSocket.accept();
 
                 /*
                 Do Something Here -- Can be 2 things
