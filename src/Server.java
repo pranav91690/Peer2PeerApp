@@ -56,7 +56,7 @@ public class Server {
                     Socket clientSocket = server.accept();
 
                     // Create a New Thread to Serve the Client
-                    Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList);
+                    Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList, "Server");
 
                     // Start a new Thread with MasterList
                     new Thread(r).start();

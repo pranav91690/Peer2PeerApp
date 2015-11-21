@@ -13,13 +13,15 @@ public class SendChunks implements Runnable{
     int numberOfChunks;
     String fileType;
     List<Integer> chunkIds;
+    String RequestType;
 
-    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks, String fileType, List<Integer> chunkIds) {
+    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks, String fileType, List<Integer> chunkIds, String RequestType) {
         this.clientSocket = clientSocket;
         MasterList = masterList;
         this.numberOfChunks = numberOfChunks;
         this.fileType = fileType;
         this.chunkIds = chunkIds;
+        this.RequestType = RequestType;
     }
 
     public void run(){
@@ -28,7 +30,7 @@ public class SendChunks implements Runnable{
         int counter = 0;
         int size = MasterList.size();
         List<Chunk> chunks = new ArrayList<>();
-        if(chunkIds.isEmpty()) {
+        if(RequestType == "Server") {
             while (counter < 3) {
                 // Select a Random Chunk from the MasterList
                 Random random = new Random();

@@ -63,7 +63,6 @@ public class Client {
             out = new ObjectOutputStream(server.getOutputStream());
             out.flush();
             in = new ObjectInputStream(server.getInputStream());
-
             // Deserialize the Data Received From the Server Output Stream Here
             Object object = in.readObject();
             if(object instanceof FileOwnerToPeer){
@@ -72,21 +71,21 @@ public class Client {
                 chunks = ((FileOwnerToPeer) object).chunks;
             }
             // Create the Summary File and Update it
-            System.out.println(numberOfChunks);
             chunkIDs = new ArrayList<>();
             updateSummaryList();
+            System.out.println(chunkIDs.size());
 
             // Step 3 -- Start the Server/Client Threads
             // Create a Thread to Keep Listening on ClientListeningPOrt
 
-            System.out.println(chunkIDs.size());
+            /*System.out.println(chunkIDs.size());
              while(5 > chunkIDs.size()) {
                  Runnable download = new ConnectToDownload(4000, server, chunkIDs);
                  new Thread(download).start();
 
                  updateSummaryList();
              }
-            /*
+
             //Create a Thread to Connect to Download Neighbour
              Runnable upload = new ListenForUpload(clientListeningPort);
              new Thread(upload).start();

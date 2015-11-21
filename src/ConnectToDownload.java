@@ -31,7 +31,7 @@ public class ConnectToDownload implements Runnable {
             Future<List<Chunk>> future = service.submit(chunkList);
             MasterList = future.get();
             GetMissingChunks();         //Getting missing Chunks
-            Runnable r = new SendChunks(clientSocket, MasterList, missingChunks.size(), "pdf", missingChunks);
+            Runnable r = new SendChunks(clientSocket, MasterList, missingChunks.size(), "pdf", missingChunks,"Client");
             new Thread(r).start();      //Start a new Thread with MasterList
         }
         catch (IOException e)
