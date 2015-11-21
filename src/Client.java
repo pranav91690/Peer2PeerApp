@@ -40,7 +40,8 @@ public class Client {
         //client.clientListeningPort = Integer.parseInt(args[0]);
         //client.serverListeningPort = Integer.parseInt(args[1]);
 
-        client.clientListeningPort = 5000;
+        client.clientListeningPort = Integer.parseInt(args[0]);
+        System.out.println(client.clientListeningPort);
         client.serverListeningPort = 4000;
 
         // Connect to BootStrap Server and get the Download Neighbour Listening Port
@@ -64,7 +65,14 @@ public class Client {
             out.flush();
             in = new ObjectInputStream(server.getInputStream());
             // Deserialize the Data Received From the Server Output Stream Here
-            Object object = in.readObject();
+
+            System.out.println(in.available());
+            Object object = null;
+            try {
+                object = in.readObject();
+            }catch (IOException e){
+                System.out.println("Cant Read Object");
+            }
             if(object instanceof FileOwnerToPeer){
                 // Extract the Information and Store it
                 numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;

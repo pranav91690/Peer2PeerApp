@@ -45,31 +45,33 @@ public class Server {
     }
 
     public void run(int serverPort){
+        ServerSocket server = null;
         try {
             // Create a new clientSocket on which the Server listens
-            ServerSocket server = new ServerSocket(serverPort);
+            server = new ServerSocket(serverPort);
             System.out.println("Server Started Listening on 4000");
-            boolean keepRunning = true; //Keep Listening for Client Requests until the Server is not closed
-            while (keepRunning) {
-                try {
-                    // Accept the clientSocket request from the client, (to which it is to send chunks)
-                    Socket clientSocket = server.accept();
-
-                    // Create a New Thread to Serve the Client
-                    Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList, "Server");
-
-                    // Start a new Thread with MasterList
-                    new Thread(r).start();
-
-                } catch (IOException e) {
-                    System.out.println("Cannot Accept Client Connection");
-                }
-            }
         }catch (IOException e){
             System.out.println("Server Cannot Be Started");
         }
 
-        System.out.println("Server Closed");
+        boolean keepRunning = true; //Keep Listening for Client Requests until the Server is not closed
+        while (keepRunning) {
+            try {
+
+                // Accept the clientSocket request from the client, (to which it is to send chunks)
+                Socket clientSocket = server.accept();
+                System.out.println("Test");
+                // Create a New Thread to Serve the Client
+                System.out.println(clientSocket.getRemoteSocketAddress());
+                Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList, "Server");
+
+                // Start a new Thread with MasterList
+                new Thread(r).start();
+
+            } catch (IOException e) {
+                System.out.println("Cannot Accept Client Connection");
+            }
+        }
     }
 
     public void splitFile(File file){

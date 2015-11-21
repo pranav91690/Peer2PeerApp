@@ -56,8 +56,10 @@ public class SendChunks implements Runnable{
         // Serialize this Object and send to Client
         try
         {
+            System.out.println("Reaches Inside the Thread");
             // Get the Output stream of the Client Stream
             ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+            System.out.println(serverMessage.numberOfChunks);
             // Write the Object in our Stream
             outputStream.writeObject(serverMessage);
             // Close the outputStream
