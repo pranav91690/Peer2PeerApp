@@ -18,8 +18,7 @@ public class Server {
     // Master List of Chunk and their id's
     List<Chunk> MasterList;
     int numberOfChunks;
-
-
+    List<Integer> EmptyList;
 
     // Start a TCP Connection and make it listen to a port
     public static void main(String[] args){
@@ -49,18 +48,15 @@ public class Server {
         try {
             // Create a new clientSocket on which the Server listens
             ServerSocket server = new ServerSocket(serverPort);
-
             System.out.println("Server Started Listening on 4000");
-
-            // Keep Listening for Client Requests until the Server is not closed
-            boolean keepRunning = true;
+            boolean keepRunning = true; //Keep Listening for Client Requests until the Server is not closed
             while (keepRunning) {
                 try {
                     // Accept the clientSocket request from the client, (to which it is to send chunks)
                     Socket clientSocket = server.accept();
 
                     // Create a New Thread to Serve the Client
-                    Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf");
+                    Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList);
 
                     // Start a new Thread with MasterList
                     new Thread(r).start();

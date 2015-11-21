@@ -4,21 +4,22 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
 /**
- * Created by pranav on 11/8/15.
+ * Created by SampathYadav on 11/19/2015.
  */
 public class SendChunks implements Runnable{
     Socket clientSocket;
     List<Chunk> MasterList;
     int numberOfChunks;
     String fileType;
+    List<Integer> chunkIds;
 
-    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks, String fileType) {
+    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks, String fileType, List<Integer> chunkIds) {
         this.clientSocket = clientSocket;
         MasterList = masterList;
         this.numberOfChunks = numberOfChunks;
         this.fileType = fileType;
+        this.chunkIds = chunkIds;
     }
 
     public void run(){
@@ -27,12 +28,21 @@ public class SendChunks implements Runnable{
         int counter = 0;
         int size = MasterList.size();
         List<Chunk> chunks = new ArrayList<>();
-        while (counter < 3){
-            // Select a Random Chunk from the MasterList
-            Random random = new Random();
-            int randomIndex = random.nextInt(size);
-            chunks.add(MasterList.get(randomIndex));
-            counter++;
+        if(chunkIds.isEmpty()) {
+            while (counter < 3) {
+                // Select a Random Chunk from the MasterList
+                Random random = new Random();
+                int randomIndex = random.nextInt(size);
+                chunks.add(MasterList.get(randomIndex));
+                counter++;
+            }
+        }
+        else
+        {
+            for(int i = 0; i < chunkIds.size(); i++)
+            {
+                chunks.add(MasterList.get(chunkIds.get(i)));
+            }
         }
 
         // Object to be sent to the Client

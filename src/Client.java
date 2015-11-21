@@ -25,20 +25,20 @@ public class Client {
 
     // List of Chunks
     List<Chunk> chunks;       //Present List of Chunks
-
-    // Current Number of Chunks with us
-    int currentChunks;
-
-    // Summary File
+    List<Integer> neighbourChunks;
+    List<Integer> missingChunks;
     List<Integer> chunkIDs;   //Summary List of the Chunk ID's
+    int currentChunks; // Current Number of Chunks with us
+
+
 
     public static void main(String[] args) {
         // Create a Client Object
         Client client = new Client();
 
         // Instantiate the FileOwner and Client Listening Ports
-//        client.clientListeningPort = Integer.parseInt(args[0]);
-//        client.serverListeningPort = Integer.parseInt(args[1]);
+        //client.clientListeningPort = Integer.parseInt(args[0]);
+        //client.serverListeningPort = Integer.parseInt(args[1]);
 
         client.clientListeningPort = 5000;
         client.serverListeningPort = 4000;
@@ -71,25 +71,35 @@ public class Client {
                 numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
                 chunks = ((FileOwnerToPeer) object).chunks;
             }
+            // Create the Summary File and Update it
+            System.out.println(numberOfChunks);
+            chunkIDs = new ArrayList<>();
+            updateSummaryList();
+
+            // Step 3 -- Start the Server/Client Threads
+            // Create a Thread to Keep Listening on ClientListeningPOrt
+
+            System.out.println(chunkIDs.size());
+             while(5 > chunkIDs.size()) {
+                 Runnable download = new ConnectToDownload(4000, server, chunkIDs);
+                 new Thread(download).start();
+
+                 updateSummaryList();
+             }
+            /*
+            //Create a Thread to Connect to Download Neighbour
+             Runnable upload = new ListenForUpload(clientListeningPort);
+             new Thread(upload).start();
+            */
+            if(5 == chunkIDs.size())
+            {
+                mergeFiles();
+            }
         }catch (IOException e){
             System.out.println("Sorry..Cannot Connect to the Server!");
-        }catch (ClassNotFoundException e){
+        }catch (ClassNotFoundException e) {
             System.out.println("Unrecognized Object Received from the Stream");
         }
-
-
-        // Create the Summary File and Update it
-        chunkIDs = new ArrayList<>();
-        updateSummaryList();
-
-        // Step 3 -- Start the Server/Client Threads
-        // Create a Thread to Keep Listening on ClientListeningPOrt
-        Runnable upload = new ListenForUpload(clientListeningPort);
-        new Thread(upload).start();
-
-        //Create a Thread to Connect to Download Neighbour
-        Runnable download = new ConnectToDownload(downloadNeighbourPort);
-        new Thread(download).start();
     }
 
     public void updateSummaryList(){
