@@ -14,14 +14,18 @@ public class SendChunks implements Runnable{
     String fileType;
     List<Integer> chunkIds;
     String RequestType;
+    ObjectOutputStream outputStream;
 
-    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks, String fileType, List<Integer> chunkIds, String RequestType) {
+    public SendChunks(Socket clientSocket, List<Chunk> masterList, int numberOfChunks,
+                      String fileType, List<Integer> chunkIds, String RequestType,
+                      ObjectOutputStream outputStream) {
         this.clientSocket = clientSocket;
         MasterList = masterList;
         this.numberOfChunks = numberOfChunks;
         this.fileType = fileType;
         this.chunkIds = chunkIds;
         this.RequestType = RequestType;
+        this.outputStream = outputStream;
     }
 
     public void run(){
@@ -56,14 +60,18 @@ public class SendChunks implements Runnable{
         // Serialize this Object and send to Client
         try
         {
-            System.out.println("Reaches Inside the Thread");
             // Get the Output stream of the Client Stream
-            ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
-            System.out.println(serverMessage.numberOfChunks);
+            outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
             // Write the Object in our Stream
-            outputStream.writeObject(serverMessage);
+            try {
+                outputStream.writeObject(serverMessage);
+                outputStream.flush();
+            }
+            catch(IOException e)
+            {
+                System.out.println("Cannot connect to Client OutputStream");
+            }
             // Close the outputStream
-            outputStream.close();
         }catch(IOException i) {
             System.out.println("Cannot connect to Client OutputStream");
         }

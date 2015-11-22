@@ -24,6 +24,9 @@ public class Server {
     public static void main(String[] args){
         Server server = new Server();
 
+        // Initiate the Streams
+
+
         // Step 1 -- Split the File
         try {
             // We have to create a File Object from whatever file is given to us...Say this is given from args
@@ -60,10 +63,9 @@ public class Server {
 
                 // Accept the clientSocket request from the client, (to which it is to send chunks)
                 Socket clientSocket = server.accept();
-                System.out.println("Test");
                 // Create a New Thread to Serve the Client
                 System.out.println(clientSocket.getRemoteSocketAddress());
-                Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList, "Server");
+                Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList, "Server", out);
 
                 // Start a new Thread with MasterList
                 new Thread(r).start();

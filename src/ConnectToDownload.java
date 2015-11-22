@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.*;
@@ -13,12 +14,14 @@ public class ConnectToDownload implements Runnable {
     List<Chunk> MasterList;
     List<Integer> missingChunks;
     List<Integer> chunkIDs;
+    ObjectOutputStream out;
 
-    public ConnectToDownload(int downloadNeighbourPort, Socket clientSocket , List<Integer> neighbourChunkList)
+    public ConnectToDownload(int downloadNeighbourPort, Socket clientSocket , List<Integer> neighbourChunkList,ObjectOutputStream out)
     {
         this.downloadNeighbourPort = downloadNeighbourPort;
         this.neighbourChunkList = neighbourChunkList;
         this.clientSocket = clientSocket;
+        this.out = out;
     }
 
     public void run(){
@@ -31,7 +34,7 @@ public class ConnectToDownload implements Runnable {
             Future<List<Chunk>> future = service.submit(chunkList);
             MasterList = future.get();
             GetMissingChunks();         //Getting missing Chunks
-            Runnable r = new SendChunks(clientSocket, MasterList, missingChunks.size(), "pdf", missingChunks,"Client");
+            Runnable r = new SendChunks(clientSocket, MasterList, missingChunks.size(), "pdf", missingChunks,"Client", out);
             new Thread(r).start();      //Start a new Thread with MasterList
         }
         catch (IOException e)

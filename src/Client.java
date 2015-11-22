@@ -41,7 +41,6 @@ public class Client {
         //client.serverListeningPort = Integer.parseInt(args[1]);
 
         client.clientListeningPort = Integer.parseInt(args[0]);
-        System.out.println(client.clientListeningPort);
         client.serverListeningPort = 4000;
 
         // Connect to BootStrap Server and get the Download Neighbour Listening Port
@@ -56,9 +55,10 @@ public class Client {
     void run(){
         // Step 2  -- Connect to the File Owner Server
         // -- Receive Chunk ID List and (Some Chunks)
+        Socket server = null;
         try {
             // Create a Socket to connect to the Server
-            Socket server = new Socket("localhost", serverListeningPort);
+            server = new Socket("localhost", serverListeningPort);
 
             // Initiate the Input and Output Buffer Streams for the Socket
             out = new ObjectOutputStream(server.getOutputStream());
@@ -66,25 +66,20 @@ public class Client {
             in = new ObjectInputStream(server.getInputStream());
             // Deserialize the Data Received From the Server Output Stream Here
 
-            System.out.println(in.available());
             Object object = null;
             try {
                 object = in.readObject();
-            }catch (IOException e){
-                System.out.println("Cant Read Object");
-            }
-            if(object instanceof FileOwnerToPeer){
-                // Extract the Information and Store it
-                numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
-                chunks = ((FileOwnerToPeer) object).chunks;
-            }
-            // Create the Summary File and Update it
-            chunkIDs = new ArrayList<>();
-            updateSummaryList();
-            System.out.println(chunkIDs.size());
+                if(object instanceof FileOwnerToPeer){
+                    // Extract the Information and Store it
+                    numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
+                    chunks = ((FileOwnerToPeer) object).chunks;
+                }
+                // Create the Summary File and Update it
+                chunkIDs = new ArrayList<>();
+                updateSummaryList();
 
-            // Step 3 -- Start the Server/Client Threads
-            // Create a Thread to Keep Listening on ClientListeningPOrt
+                // Step 3 -- Start the Server/Client Threads
+                // Create a Thread to Keep Listening on ClientListeningPOrt
 
             /*System.out.println(chunkIDs.size());
              while(5 > chunkIDs.size()) {
@@ -98,14 +93,28 @@ public class Client {
              Runnable upload = new ListenForUpload(clientListeningPort);
              new Thread(upload).start();
             */
-            if(5 == chunkIDs.size())
-            {
-                mergeFiles();
+                if(5 == chunkIDs.size())
+                {
+                    mergeFiles();
+                }
+            }catch (IOException e){
+                System.out.println("Cant Read Object");
             }
+
         }catch (IOException e){
             System.out.println("Sorry..Cannot Connect to the Server!");
         }catch (ClassNotFoundException e) {
             System.out.println("Unrecognized Object Received from the Stream");
+        }
+        finally {
+            try {
+                in.close();
+                out.close();
+                server.close();
+            }
+            catch(IOException e) {
+                System.out.println("Sorry..Cannot Connect to the Server!");
+            }
         }
     }
 
