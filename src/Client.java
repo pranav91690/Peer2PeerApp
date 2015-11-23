@@ -1,6 +1,9 @@
 import java.io.*;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -8,8 +11,8 @@ import java.util.List;
  */
 public class Client {
     // The Input and Output Streams for the Client
-    ObjectOutputStream  out;  //stream write to the socket
-    ObjectInputStream   in;   //stream read from the socket
+    ObjectOutputStream  out;            //stream write to the socket
+    ObjectInputStream   in;             //stream read from the socket
 
     // Client Listening Port
     int clientListeningPort;
@@ -18,18 +21,22 @@ public class Client {
     int serverListeningPort;
 
     // Download Neighbour Listening Port
-    int downloadNeighbourPort;//Get this from the BootStrap Server
+    int downloadNeighbourPort;          //Get this from the BootStrap Server
 
     // Number of Chunks
-    int numberOfChunks;   //Number of Chunks in the Input File
+    int numberOfChunks;                 //Number of Chunks in the Input File
 
-    // List of Chunks
-    List<Chunk> chunks;       //Present List of Chunks
-    List<Integer> neighbourChunks;
-    List<Integer> missingChunks;
-    List<Integer> chunkIDs;   //Summary List of the Chunk ID's
-    int currentChunks; // Current Number of Chunks with us
+    // Actual Chunk Data
+    HashMap<Integer,Chunk> chunks;            //Present List of Chunks
 
+    // Chunk Summary List
+    HashSet<Integer> chunkIDs;          //Summary List of the Chunk ID's
+
+    // File Type
+    String fileType;
+
+    // Received Chunks
+    int rvdChunks;
 
 
     public static void main(String[] args) {
@@ -37,107 +44,96 @@ public class Client {
         Client client = new Client();
 
         // Instantiate the FileOwner and Client Listening Ports
-        //client.clientListeningPort = Integer.parseInt(args[0]);
-        //client.serverListeningPort = Integer.parseInt(args[1]);
-
         client.clientListeningPort = Integer.parseInt(args[0]);
+        client.downloadNeighbourPort = Integer.parseInt(args[1]);
+//        client.serverListeningPort = Integer.parseInt(args[1]);
+
+//        client.clientListeningPort = Integer.parseInt(args[0]);
         client.serverListeningPort = 4000;
 
         // Connect to BootStrap Server and get the Download Neighbour Listening Port
 
         // Run the Client
         client.run();
-
-        // Wait Here
-        System.out.println("Stop Here");
     }
 
     void run(){
-        // Step 2  -- Connect to the File Owner Server
-        // -- Receive Chunk ID List and (Some Chunks)
-        Socket server = null;
+        // Step 1  -- Connect to the File Owner Server
+        // -- Receive Chunks and setup the Client ID list
+        Socket ServerSocket = null;
         try {
             // Create a Socket to connect to the Server
-            server = new Socket("localhost", serverListeningPort);
+            ServerSocket = new Socket("localhost", serverListeningPort);
 
-            // Initiate the Input and Output Buffer Streams for the Socket
-            out = new ObjectOutputStream(server.getOutputStream());
-            out.flush();
-            in = new ObjectInputStream(server.getInputStream());
-            // Deserialize the Data Received From the Server Output Stream Here
-
-            Object object = null;
             try {
-                object = in.readObject();
-                if(object instanceof FileOwnerToPeer){
-                    // Extract the Information and Store it
-                    numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
-                    chunks = ((FileOwnerToPeer) object).chunks;
-                }
-                // Create the Summary File and Update it
-                chunkIDs = new ArrayList<>();
-                updateSummaryList();
+                // Initiate the Input and Output Buffer Streams for the Socket
+                out = new ObjectOutputStream(ServerSocket.getOutputStream());
+                out.flush();
+                in = new ObjectInputStream(ServerSocket.getInputStream());
 
-                // Step 3 -- Start the Server/Client Threads
-                // Create a Thread to Keep Listening on ClientListeningPOrt
+                // Deserialize the Data Received From the Server Output Stream Here
+                Object object = null;
+                try {
+                    System.out.println("Received Data from the Server");
+                    object = in.readObject();
+                    if (object instanceof FileOwnerToPeer) {
+                        // Extract the Information and Store it
+                        numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
+                        // Initiate the Array
+                        chunks = new HashMap<>();
+                        rvdChunks = ((FileOwnerToPeer) object).chunks.size();
+                        // Update the List
+                        for( Chunk c : ((FileOwnerToPeer) object).chunks){
+                            chunks.put(c.chunkID, c);
+                        }
+                        fileType = ((FileOwnerToPeer) object).fileType;
+                    }
 
-            /*System.out.println(chunkIDs.size());
-             while(5 > chunkIDs.size()) {
-                 Runnable download = new ConnectToDownload(4000, server, chunkIDs);
-                 new Thread(download).start();
+                    // Create the Summary File and Update it
+                    chunkIDs = new HashSet<>();
+                    updateSummaryList();
 
-                 updateSummaryList();
-             }
+                    // Step 2 -- Start the Server/Client Threads
+                    // Create a Thread to Keep Listening on ClientListeningPort
+                    Runnable r1 = new ListenForUpload(clientListeningPort,chunks,chunkIDs);
+                    new Thread(r1).start();
 
-            //Create a Thread to Connect to Download Neighbour
-             Runnable upload = new ListenForUpload(clientListeningPort);
-             new Thread(upload).start();
-            */
-                if(5 == chunkIDs.size())
-                {
-                    mergeFiles();
+                    // We Don't Exactly need a Thread for this
+                    Runnable r2 = new ConnectToDownload(downloadNeighbourPort, chunks, chunkIDs,numberOfChunks,
+                            clientListeningPort,fileType, rvdChunks);
+                    new Thread(r2).start();
+
+
+                } catch (IOException e) {
+                    System.out.println("Cant Read Object");
+                } catch (ClassNotFoundException e) {
+                    System.out.println("Unrecognized Object Received from the Stream");
                 }
             }catch (IOException e){
-                System.out.println("Cant Read Object");
+                System.out.println("Cannot Open Connection to the ServerPort");
             }
 
         }catch (IOException e){
             System.out.println("Sorry..Cannot Connect to the Server!");
-        }catch (ClassNotFoundException e) {
-            System.out.println("Unrecognized Object Received from the Stream");
         }
         finally {
             try {
                 in.close();
                 out.close();
-                server.close();
+                // Check on this later
+                ServerSocket.close();
             }
             catch(IOException e) {
-                System.out.println("Sorry..Cannot Connect to the Server!");
+                System.out.println("Attempt to Close the Connection Failed");
             }
         }
     }
 
     public void updateSummaryList(){
         if(!chunks.isEmpty()) {
-            for (Chunk c : chunks) {
+            for (Chunk c : chunks.values()) {
                 chunkIDs.add(c.chunkID);
             }
         }
-    }
-
-    public void mergeFiles() throws IOException{
-        // Create a New File Output Stream at this path
-        FileOutputStream fos = new FileOutputStream("merged.pdf");
-        try(BufferedOutputStream mergeStream = new BufferedOutputStream(fos)){
-            // Sort the Client According to the Client ID Numbers before Combining
-            for(Chunk c : chunks){
-                mergeStream.write(c.bytes);
-            }
-
-            // Close the Merge Stream
-            mergeStream.close();
-        }
-
     }
 }

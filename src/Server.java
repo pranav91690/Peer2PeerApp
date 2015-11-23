@@ -1,10 +1,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -13,19 +10,14 @@ import java.util.List;
 public class Server {
     // Server Input and OutPut Streams
     ObjectOutputStream out;  //stream write to the socket
-    ObjectInputStream in;    //stream read from the socket
 
     // Master List of Chunk and their id's
-    List<Chunk> MasterList;
+    ArrayList<Chunk> chunks;
     int numberOfChunks;
-    List<Integer> EmptyList;
 
     // Start a TCP Connection and make it listen to a port
     public static void main(String[] args){
         Server server = new Server();
-
-        // Initiate the Streams
-
 
         // Step 1 -- Split the File
         try {
@@ -35,44 +27,39 @@ public class Server {
             // Split the File
             server.splitFile(file);
 
-//         TESTING PURPOSE ONLY
-//            server.mergeFiles();
-
-            // Start Listening on Server Port -- This might be a constant or given as command line argument
             // Step 2 -- Run the Server and wait for incoming requests
             server.run(4000);
-
         }catch (Exception e){
-            System.out.println(e);
+            System.out.println("Cannot Open the File");
         }
     }
 
     public void run(int serverPort){
         ServerSocket server = null;
         try {
-            // Create a new clientSocket on which the Server listens
             server = new ServerSocket(serverPort);
             System.out.println("Server Started Listening on 4000");
+
+            boolean keepRunning = true; //Keep Listening for Client Requests until the Server is not closed
+            while (keepRunning) {
+                try {
+                    // Accept the clientSocket request from the client, (to which it is to send chunks)
+                    Socket clientSocket = server.accept();
+
+                    // Create a New Thread to Serve the Client
+                    Runnable r = new SendChunks(clientSocket, chunks, numberOfChunks, "pdf", out);
+
+                    // Start a new Thread with chunks
+                    new Thread(r).start();
+
+                } catch (IOException e) {
+                    System.out.println("Cannot Accept Client Connection");
+                } catch (NullPointerException e){
+                    System.out.println("Null Point Exception While Accepting Client Connection");
+                }
+            }
         }catch (IOException e){
             System.out.println("Server Cannot Be Started");
-        }
-
-        boolean keepRunning = true; //Keep Listening for Client Requests until the Server is not closed
-        while (keepRunning) {
-            try {
-
-                // Accept the clientSocket request from the client, (to which it is to send chunks)
-                Socket clientSocket = server.accept();
-                // Create a New Thread to Serve the Client
-                System.out.println(clientSocket.getRemoteSocketAddress());
-                Runnable r = new SendChunks(clientSocket, MasterList, numberOfChunks, "pdf", EmptyList, "Server", out);
-
-                // Start a new Thread with MasterList
-                new Thread(r).start();
-
-            } catch (IOException e) {
-                System.out.println("Cannot Accept Client Connection");
-            }
         }
     }
 
@@ -82,9 +69,9 @@ public class Server {
         byte[] buffer;
 
         int fileSize = (int)file.length();
-        FileInputStream inputStream;
 
-        MasterList = new ArrayList<>();
+        FileInputStream inputStream;
+        chunks = new ArrayList<>();
 
         try{
             // Read the Data into a File Stream
@@ -95,6 +82,7 @@ public class Server {
 
             // Variable to Store the Number of Bytes in a Chunk
             int chunkSize = 0;
+
             // While there is still data to read
             while(fileSize > 0){
                 // Initiate the Buffer Array
@@ -111,34 +99,20 @@ public class Server {
 //                File newFile = new File(file.getParent(), name + "." + String.format("%03d", partCounter));
 //
 //                //Create an File Output Stream
-//                FileOutputStream outputStream = new FileOutputStream(newFile);
-//                outputStream.write(buffer);
-//                outputStream.close();
+//                FileOutputStream out = new FileOutputStream(newFile);
+//                out.write(buffer);
+//                out.close();
 // ****************************************************************************************************
 
-                // Store the MasterList in the Master List
+                // Store the chunks in the Master List
                 Chunk chunk = new Chunk(partCounter, buffer);
-                MasterList.add(chunk);
+                chunks.add(chunk);
                 numberOfChunks++;
 
                 partCounter++;
             }
         }catch (IOException e){
-            System.out.println(e);
-        }
-
-    }
-
-    public void mergeFiles() throws IOException{
-        // Create a New File Output Stream at this path
-        FileOutputStream fos = new FileOutputStream("merged.pdf");
-        try(BufferedOutputStream mergeStream = new BufferedOutputStream(fos)){
-            for(Chunk c : MasterList){
-                mergeStream.write(c.bytes);
-            }
-
-            // Close the Merge Stream
-            mergeStream.close();
+            System.out.println("Cannot Read the File into a Stream");
         }
 
     }

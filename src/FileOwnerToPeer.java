@@ -1,5 +1,8 @@
 import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -7,10 +10,10 @@ import java.util.List;
  */
 public class FileOwnerToPeer implements Serializable {
     int numberOfChunks;
-    List<Chunk> chunks;
+    ArrayList<Chunk> chunks;
     String fileType;
 
-    public FileOwnerToPeer(int numberOfChunks, List<Chunk> chunks, String fileType) {
+    public FileOwnerToPeer(int numberOfChunks, ArrayList<Chunk> chunks, String fileType) {
         this.numberOfChunks = numberOfChunks;
         this.chunks = chunks;
         this.fileType = fileType;
