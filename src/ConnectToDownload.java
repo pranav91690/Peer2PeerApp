@@ -36,92 +36,99 @@ public class ConnectToDownload implements Runnable {
         boolean connected = false;
         while(!connected) {
             try {
-                System.out.println("Client Connected to Download Neighbour");
-                connected = true;
                 // Open a Connection to the Download Neighbour
                 Socket downloadNeighbourSocket = new Socket("localhost", downloadNeighbourPort);
-
+                connected = true;
+                System.out.println("--->  Client Connected to Download Neighbour");
                 // Initiate the Input and Output Buffer Streams for the Socket
                 try {
                     out = new ObjectOutputStream(downloadNeighbourSocket.getOutputStream());
                     in = new ObjectInputStream(downloadNeighbourSocket.getInputStream());
 
-                    // Request for it's Client ID List
-                    // Get the Output Stream of the Download Neighbour
-                    // Repeat this Every 100ms
+                    Object resp = null;
+                    HashSet<Integer> rvdIDs = null;
                     boolean keepRunning = true;
-
+                    int stage = 0;
                     while (keepRunning) {
-                        // Check if Number of
+                        // Wait Some Time Before Sending the Next Request
+                        try{
+                            Thread.sleep(10000);
+                        }catch (InterruptedException e){
+                            System.out.println("Some Problem with the Thread");
+                        }
+
+                        // Print the Chunks Received
+                        System.out.println(chunkIDs);
+
+                        // Check if we received all Chunks
                         if (rvdChunks == numberOfChunks) {
                             keepRunning = false;
                             // Merge the Files
                             mergeFiles();
                         }
-                        try {
-                            out.writeObject("SendSummaryList");
-                            out.flush();
-                            System.out.println("Sent Req for Summary List");
 
-                            SummaryList resp = null;
-
-                            // Get the Response Now
+                        // If in stage 0, send req for SummaryList
+                        if (stage == 0) {
                             try {
-                                // Get the Summary List Object
-                                resp = (SummaryList) in.readObject();
-                                System.out.println("Received Summary List");
-
-                                // Compare with the Master List
-                                resp.chunkIDs.removeAll(chunkIDs);
-
-                                // Request the Remaining Id's
-                                if (!resp.chunkIDs.isEmpty()) {
+                                out.writeObject("SendSummaryList");
+                                out.flush();
+//                                System.out.println("---> Sent Req for Summary List");
+                                stage = 1;
+                            } catch (IOException e) {
+                                System.out.println("Cannot Send Req for Summary List");
+                            }
+                        } else {
+                            // Send Request for Missing Chunks
+                            if (rvdIDs != null) {
+                                // Get the Missing Chunks
+                                rvdIDs.removeAll(chunkIDs);
+                                if (!rvdIDs.isEmpty()) {
                                     // Send a Request to the Download Peer
-                                    SummaryList wantedIDs = new SummaryList(resp.chunkIDs);
+//                                    System.out.println(rvdIDs);
+                                    SummaryList wantedIDs = new SummaryList(rvdIDs);
                                     try {
                                         out.writeObject(wantedIDs);
                                         out.flush();
-                                        System.out.println("Sent Wanted IDs");
-                                        ChunkList chunkList = null;
-
-                                        // Get the Requested ID's Data
-                                        try {
-                                            chunkList = (ChunkList) in.readObject();
-                                            System.out.println("Received Wanted IDs");
-                                            // Add to the Summary List
-                                            for (Chunk c : chunkList.chunks) {
-                                                chunkIDs.add(c.chunkID);
-                                                chunks.put(c.chunkID, c);
-                                                rvdChunks++;
-                                            }
-                                        } catch (ClassNotFoundException e) {
-                                            System.out.println("Cannot Read the Requested ID's");
-                                        } catch (IOException e) {
-                                            System.out.println("Cannot Connect to the Input Stream");
-                                        }
+//                                        System.out.println("--->" + rvdIDs);
+                                        stage = 0;
                                     } catch (IOException e) {
-                                        System.out.println("Cannot send Wanted ID's request");
+                                        System.out.println("Cannot Send ID Request");
                                     }
                                 }
-                            } catch (ClassNotFoundException e) {
-                                System.out.println("Unrecognized Class in the Object");
-                            } catch (IOException e) {
-                                System.out.println("Cannot Read Summary List");
+                            }
+                        }
+
+                        // Receive a Message From the Server
+                        try {
+                            resp = in.readObject();
+                            if (resp instanceof SummaryList) {
+//                                System.out.println("<--- Rvd Summary List");
+                                rvdIDs = ((SummaryList) resp).chunkIDs;
+                            } else if (resp instanceof ChunkList) {
+//                                System.out.println("<--- Rvd Wanted IDs");
+                                // Add to the Summary List
+                                for (Chunk c : ((ChunkList) resp).chunks) {
+                                    chunkIDs.add(c.chunkID);
+                                    chunks.put(c.chunkID, c);
+                                    rvdChunks++;
+                                }
+//                                System.out.println("<---" + ((ChunkList) resp).chunks);
                             }
                         } catch (IOException e) {
-                            System.out.println("Cannot connect to the Output Stream");
-                        }
-                        try {
-                            Thread.sleep(20000);
-                        } catch (InterruptedException e) {
-                            System.out.println("Failed to Sleep");
+                            System.out.println("Cannot Read Message From the Server");
+                        } catch (ClassNotFoundException e) {
+                            System.out.println("No Such Class Exists");
                         }
                     }
                 } catch (IOException e) {
                     System.out.println("Cannot Connect to the In/Out Streams");
                 }
             } catch (IOException e) {
-                System.out.println("Waiting To Connect");
+                try{
+                    Thread.sleep(500);
+                }catch (InterruptedException e1){
+                    System.out.println("Cannot Pause the Thread");
+                }
             }
         }
     }

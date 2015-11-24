@@ -98,7 +98,6 @@ public class Client {
                     Runnable r1 = new ListenForUpload(clientListeningPort,chunks,chunkIDs);
                     new Thread(r1).start();
 
-                    // We Don't Exactly need a Thread for this
                     Runnable r2 = new ConnectToDownload(downloadNeighbourPort, chunks, chunkIDs,numberOfChunks,
                             clientListeningPort,fileType, rvdChunks);
                     new Thread(r2).start();
@@ -133,7 +132,9 @@ public class Client {
         if(!chunks.isEmpty()) {
             for (Chunk c : chunks.values()) {
                 chunkIDs.add(c.chunkID);
+                System.out.print(c.chunkID);
             }
+            System.out.println("");
         }
     }
 }
