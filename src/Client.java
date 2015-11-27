@@ -49,7 +49,7 @@ public class Client {
         // Register with the BootStrap Server, Give the Listening Port and the Receive the
         // Download Neighbour Port
 
-        client.downloadNeighbourPort = Integer.parseInt(args[1]);
+        //client.downloadNeighbourPort = Integer.parseInt(args[1]);
 
         client.serverListeningPort = 4000;
 
@@ -60,117 +60,107 @@ public class Client {
     void run(){
         // Connect to BootStrap Server. Send the Listening Port and get the Download Neighbour Listening Port
         // Initiate the Input and Output Buffer Streams for the Socket
-        try {
-            Socket bootStrap = new Socket("localhost",4100);
-            System.out.println("Successfully Connected to the BootStrap Server");
-
-            // Send the Listening Port and Get the Download Neighbour Port
-            // Initiate the Input and Output Buffer Streams for the Socket
-            out = new ObjectOutputStream(bootStrap.getOutputStream());
-            out.flush();
-            in = new ObjectInputStream(bootStrap.getInputStream());
-
-            // Send the Client Listening Port
-            boolean rvdLegalPort = false;
-            while (!rvdLegalPort){
-                try {
-                    out.writeInt(clientListeningPort);
-                    out.flush();
-
-                    try {
-                        int dwnN = in.readInt();
-                        if (downloadNeighbourPort != -1) {
-                            rvdLegalPort = true;
-                            downloadNeighbourPort = dwnN;
-                        }
-                    }catch (IOException e){
-                        System.out.println("Cannot Read Port from the BootStrap Server");
-                    }finally {
-                        // Close the Connections
-                        in.close();
-                        out.close();
-                        bootStrap.close();
-                    }
-                }catch (IOException e){
-                    System.out.println("Cannot Send Client Listening Port to the Server");
-                }
-            }
-
-
-            // Start the Client Process Now
-            // Step 1  -- Connect to the File Owner Server -- Receive Chunks and setup the Client ID list
-            Socket ServerSocket = null;
+        // Send the Listening Port and Get the Download Neighbour Port
+        // Initiate the Input and Output Buffer Streams for the Socket
+        int dwnN = -1;
+        Socket bootStrap = null;
+        while (dwnN == -1) {
             try {
-                // Create a Socket to connect to the Server
-                ServerSocket = new Socket("localhost", serverListeningPort);
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                System.out.println(e);
+            }
 
-                try {
-                    // Initiate the Input and Output Buffer Streams for the Socket
-                    out = new ObjectOutputStream(ServerSocket.getOutputStream());
-                    out.flush();
-                    in = new ObjectInputStream(ServerSocket.getInputStream());
+            try {
+                bootStrap = new Socket("localhost",4100);
+                System.out.println("Successfully Connected to the BootStrap Server");
 
-                    // Deserialize the Data Received From the Server Output Stream Here
-                    Object object = null;
-                    try {
-                        System.out.println("Received Data from the Server");
-                        object = in.readObject();
-                        if (object instanceof FileOwnerToPeer) {
-                            // Extract the Information and Store it
-                            numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
-                            // Initiate the Array
-                            chunks = new HashMap<>();
-                            rvdChunks = ((FileOwnerToPeer) object).chunks.size();
-                            // Update the List
-                            for( Chunk c : ((FileOwnerToPeer) object).chunks){
-                                chunks.put(c.chunkID, c);
-                            }
-                            fileType = ((FileOwnerToPeer) object).fileType;
-                        }
+                out = new ObjectOutputStream(bootStrap.getOutputStream());
+                out.flush();
+                in = new ObjectInputStream(bootStrap.getInputStream());
 
-                        // Create the Summary File and Update it
-                        chunkIDs = new HashSet<>();
-                        updateSummaryList();
-
-
-                        // Step 2 -- Start the Server/Client Threads
-                        // Create a Thread to Keep Listening on ClientListeningPort
-                        Runnable r1 = new ListenForUpload(clientListeningPort,chunks,chunkIDs);
-                        new Thread(r1).start();
-
-                        // Get the Download Neighbour From the BootStrap Server
-                        // Start this Thread only if we get a non negative value
-                        Runnable r2 = new ConnectToDownload(downloadNeighbourPort, chunks, chunkIDs,numberOfChunks,
-                                clientListeningPort,fileType, rvdChunks);
-                        new Thread(r2).start();
-
-
-                    } catch (IOException e) {
-                        System.out.println("Cant Read Object");
-                    } catch (ClassNotFoundException e) {
-                        System.out.println("Unrecognized Object Received from the Stream");
-                    }
-                }catch (IOException e){
-                    System.out.println("Cannot Open Connection to the ServerPort");
+                // Send the Client Listening Port
+                System.out.println("hi");
+                out.writeInt(clientListeningPort);
+                out.flush();
+                dwnN = in.readInt();
+                System.out.println(dwnN);
+                if (dwnN != -1) {
+                    System.out.println(dwnN);
+                    downloadNeighbourPort = dwnN;
                 }
 
-            }catch (IOException e){
-                System.out.println("Sorry..Cannot Connect to the Server!");
+                in.close();
+                out.close();
+                bootStrap.close();
+
+            } catch (IOException e) {
+                System.out.println("Cannot Communicate with the Client");
+                break;
             }
-        }catch (IOException e){
-            System.out.println("Cannot Connect to the BootStrap Server");
         }
 
-        // When should we close this Connection?? --- If at we should
-//        finally {
-//            try {
-//                in.close();
-//                out.close();
-//            }
-//            catch(IOException e) {
-//                System.out.println("Attempt to Close the Connection Failed");
-//            }
-//        }
+        System.out.println("Connect to Server");
+        // Start the Client Process Now
+        // Step 1  -- Connect to the File Owner Server -- Receive Chunks and setup the Client ID list
+        Socket ServerSocket = null;
+        try {
+            // Create a Socket to connect to the Server
+            ServerSocket = new Socket("localhost", serverListeningPort);
+
+            try {
+                // Initiate the Input and Output Buffer Streams for the Socket
+                out = new ObjectOutputStream(ServerSocket.getOutputStream());
+                out.flush();
+                in = new ObjectInputStream(ServerSocket.getInputStream());
+
+                // Deserialize the Data Received From the Server Output Stream Here
+                Object object = null;
+                try {
+                    System.out.println("Received Data from the Server");
+                    object = in.readObject();
+                    if (object instanceof FileOwnerToPeer) {
+                        // Extract the Information and Store it
+                        numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
+                        // Initiate the Array
+                        chunks = new HashMap<>();
+                        rvdChunks = ((FileOwnerToPeer) object).chunks.size();
+                        // Update the List
+                        for( Chunk c : ((FileOwnerToPeer) object).chunks){
+                            chunks.put(c.chunkID, c);
+                        }
+                        fileType = ((FileOwnerToPeer) object).fileType;
+                    }
+
+                    // Create the Summary File and Update it
+                    chunkIDs = new HashSet<>();
+                    updateSummaryList();
+
+
+                    // Step 2 -- Start the Server/Client Threads
+                    // Create a Thread to Keep Listening on ClientListeningPort
+                    Runnable r1 = new ListenForUpload(clientListeningPort,chunks,chunkIDs);
+                    new Thread(r1).start();
+
+                    // Get the Download Neighbour From the BootStrap Server
+                    // Start this Thread only if we get a non negative value
+                    Runnable r2 = new ConnectToDownload(downloadNeighbourPort, chunks, chunkIDs,numberOfChunks,
+                            clientListeningPort,fileType, rvdChunks);
+                    new Thread(r2).start();
+
+
+                } catch (IOException e) {
+                    System.out.println("Cant Read Object");
+                } catch (ClassNotFoundException e) {
+                    System.out.println("Unrecognized Object Received from the Stream");
+                }
+            }catch (IOException e){
+                System.out.println("Cannot Open Connection to the ServerPort");
+            }
+
+        }catch (IOException e){
+            System.out.println("Sorry..Cannot Connect to the Server!");
+        }
     }
 
     public void updateSummaryList(){

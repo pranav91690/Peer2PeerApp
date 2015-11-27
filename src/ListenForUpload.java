@@ -46,7 +46,7 @@ public class ListenForUpload implements Runnable {
                         try {
                             resp = in.readObject();
                             if (resp instanceof String) {
-//                                System.out.println("<--- Rvd Req for Summary List");
+                                System.out.println("<--- Rvd Req for Summary List");
                                 // Send Summary List
                                 try {
                                     SummaryList slist = new SummaryList(chunkIDs);
@@ -74,9 +74,11 @@ public class ListenForUpload implements Runnable {
                                 }
                             }
                         } catch (IOException e) {
-                            System.out.println("Cannot Read Message From Upload Neighbour");
+                            System.out.println(e);
+                            break;
                         } catch (ClassNotFoundException e) {
                             System.out.println("Cannot Recognize Object");
+                            break;
                         }
                     }
                 }catch (IOException e){

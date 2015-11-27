@@ -42,54 +42,76 @@ public class BootStrapServer {
 
             // Keep Listening
             boolean keepRunning = true;
+            int firstPort = 0;
             while (keepRunning){
                 // Try to Accept a Connection
                 try{
                     Socket client = bootStrap.accept();
                     System.out.println("Connection Accepted from Client");
 
-                    // Receive the Client Listening Port from the Peer
-                    out = new ObjectOutputStream(client.getOutputStream());
-                    out.flush();
-                    in = new ObjectInputStream(client.getInputStream());
+                    try {
+                        // Receive the Client Listening Port from the Peer
+                        out = new ObjectOutputStream(client.getOutputStream());
+                        out.flush();
+                        in = new ObjectInputStream(client.getInputStream());
 
-                    //Try to receive a Connection from the Client
-                    int port;
-                    try{
-                        port = in.readInt();
-                        System.out.println("Client Successfully Read");
+                        //Try to receive a Connection from the Client
+                        int port;
+                        try {
+                            port = in.readInt();
+                            System.out.println("Client Successfully Read  --->  " + port);
 
-                        // Add this Port to the List of Ports
-                        if(!ports.containsKey(port)) {
-                            int clientNo = currentClient;
-                            ports.put(port,clientNo);
+                            // Add this Port to the List of Ports
+                            if (!ports.containsKey(port)) {
+                                int clientNo = currentClient;
+                                System.out.println(currentClient);
+                                ports.put(port, clientNo);
 
-                            // Add this to the Circle as Well
-                            if(clients.containsKey(clientNo - 1)) {
-                                clients.put(clientNo - 1, port);
+                                if(currentClient == 1){
+                                    firstPort = port;
+                                }
+
+                                // Add this to the Circle as Well
+                                if (clients.containsKey(clientNo - 1)) {
+                                    clients.put(clientNo - 1, port);
+                                }
+
+                                currentClient++;
                             }
 
-                            currentClient++;
+                            // Complete the Circle - Can Get the Max Number of Peers in our Circle
+                            // from the User
+                            if (currentClient == 6) {
+                                clients.put(5,firstPort);
+                            }
+
+                            // Get the Client Number for the Port
+                            int clientNo = ports.get(port);
+                            int portNumber = -1;
+                            if(clients.containsKey(clientNo)) {
+                                portNumber = clients.get(clientNo);
+                            }
+
+                            // Create a New Thread to Return the Listening Port
+//                            Runnable r = new returnListeningPort(client, portNumber);
+//                            new Thread(r).start();
+                            // Send the Port Number to the Client
+                            try{
+                                out.writeInt(portNumber);
+                                out.flush();
+                            }catch (IOException e){
+                                System.out.println("Cannot Send Port to the Number");
+                            }
+
+                            System.out.println(portNumber);
+
+                        } catch (IOException e) {
+                            System.out.println("Cannot Read the Port Number of the Client");
                         }
-
-                        // Complete the Circle - Can Get the Max Number of Peers in our Circle
-                        // from the User
-                        if(currentClient == 6){
-                            clients.put(5,ports.get(1));
-                        }
-
-                        // Get the Client Number for the Port
-                        int clientNo = ports.get(port);
-                        int portNumber = clients.get(clientNo);
-
-                        // Create a New Thread to Return the Listening Port
-                        Runnable r = new returnListeningPort(client,portNumber);
-                        new Thread(r).start();
-
                     }catch (IOException e){
-                        System.out.println("Cannot Read the Port Number of the Client");
+                        System.out.println("Cannot Iniatate the Streams");
                     }
-                }catch (IOException e){
+                } catch (IOException e){
                     System.out.println("Cannot Accept Connection From the Client");
                 }
             }
