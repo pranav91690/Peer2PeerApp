@@ -80,13 +80,10 @@ public class Client {
                 in = new ObjectInputStream(bootStrap.getInputStream());
 
                 // Send the Client Listening Port
-                System.out.println("hi");
                 out.writeInt(clientListeningPort);
                 out.flush();
                 dwnN = in.readInt();
-                System.out.println(dwnN);
                 if (dwnN != -1) {
-                    System.out.println(dwnN);
                     downloadNeighbourPort = dwnN;
                 }
 
@@ -136,6 +133,7 @@ public class Client {
                     chunkIDs = new HashSet<>();
                     updateSummaryList();
 
+                    System.out.println(chunkIDs);
 
                     // Step 2 -- Start the Server/Client Threads
                     // Create a Thread to Keep Listening on ClientListeningPort
@@ -167,9 +165,7 @@ public class Client {
         if(!chunks.isEmpty()) {
             for (Chunk c : chunks.values()) {
                 chunkIDs.add(c.chunkID);
-                System.out.print(c.chunkID);
             }
-            System.out.println("");
         }
     }
 }

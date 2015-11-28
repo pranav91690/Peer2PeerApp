@@ -33,99 +33,108 @@ public class ConnectToDownload implements Runnable {
     }
 
     public void run(){
-        boolean connected = false;
-        while(!connected) {
+        // Keep Connecting to the Download Neighbour for Data
+        boolean incomplete = true;
+        while(incomplete) {
+            // Wait Some Time Before Trying to Connect Again
+            try{
+                Thread.sleep(5000);
+            }catch (InterruptedException e){
+                System.out.println("Some Problem with the Thread");
+            }
+            // Connect Each Time to the Download Neighbour Port
+            boolean dataTransferred = false;
+            int state = 0;
+
             try {
                 // Open a Connection to the Download Neighbour
                 Socket downloadNeighbourSocket = new Socket("localhost", downloadNeighbourPort);
-                connected = true;
-                System.out.println("--->  Client Connected to Download Neighbour");
-                // Initiate the Input and Output Buffer Streams for the Socket
-                try {
-                    System.out.println(downloadNeighbourPort);
-                    out = new ObjectOutputStream(downloadNeighbourSocket.getOutputStream());
-                    in = new ObjectInputStream(downloadNeighbourSocket.getInputStream());
+                System.out.println("---> Client Connected to Download Neighbour " + downloadNeighbourPort);
 
+                // Initiate the Input and Output Buffer Streams for the Socket
+                out = new ObjectOutputStream(downloadNeighbourSocket.getOutputStream());
+                out.flush();
+                in = new ObjectInputStream(downloadNeighbourSocket.getInputStream());
+
+                while(!dataTransferred) {
+                    // Receive the Summary List//Chunks ID's
                     Object resp = null;
                     HashSet<Integer> rvdIDs = null;
-                    boolean keepRunning = true;
-                    int stage = 0;
-                    while (keepRunning) {
-                        // Wait Some Time Before Sending the Next Request
-                        try{
-                            Thread.sleep(2000);
-                        }catch (InterruptedException e){
-                            System.out.println("Some Problem with the Thread");
-                        }
-                        // Print the Chunks Received
-                        System.out.println(chunkIDs);
-                        // If in stage 0, send req for SummaryList
-                        if (stage == 0) {
-                            try {
-                                out.writeObject("SendSummaryList");
-                                out.flush();
-                                //System.out.println("---> Sent Req for Summary List");
-                                stage = 1;
-                            } catch (IOException e) {
-                                System.out.println("Cannot Send Req for Summary List");
-                            }
-                        } else {
-                            // Send Request for Missing Chunks
-                            if (rvdIDs != null) {
-                                // Get the Missing Chunks
-                                rvdIDs.removeAll(chunkIDs);
-                                if (!rvdIDs.isEmpty()) {
-                                    // Send a Request to the Download Peer
-                                    //System.out.println(rvdIDs);
-                                    SummaryList wantedIDs = new SummaryList(rvdIDs);
-                                    try {
-                                        out.writeObject(wantedIDs);
-                                        out.flush();
-                                        //System.out.println("--->" + rvdIDs);
-                                    } catch (IOException e) {
-                                        System.out.println("Cannot Send ID Request");
-                                    }
+                    resp = in.readObject();
+                    if (state == 0 && resp instanceof SummaryList) {
+                        rvdIDs = ((SummaryList) resp).chunkIDs;
+                        System.out.println("Client Rvd Summary List <--- " + rvdIDs);
+                        // Send Required Chunks Back
+                        if (rvdIDs != null) {
+                            // Get the Missing Chunks
+                            rvdIDs.removeAll(chunkIDs);
+                            if (!rvdIDs.isEmpty()) {
+                                // Send a Request to the Download Peer
+                                //System.out.println(rvdIDs);
+                                SummaryList wantedIDs = new SummaryList(rvdIDs);
+                                try {
+                                    out.writeObject(wantedIDs);
+                                    out.flush();
+                                    System.out.println(rvdIDs + " Client ---> Sent Req for Required ID's");
+                                    //System.out.println("--->" + rvdIDs);
+                                } catch (IOException e) {
+                                    System.out.println("Cannot Send ID Request");
                                 }
                             }
-                            stage = 0;
                         }
-                        // Receive a Message From the Server
-                        try {
-                            resp = in.readObject();
-                            if (resp instanceof SummaryList) {
-                                //System.out.println("<--- Rvd Summary List");
-                                rvdIDs = ((SummaryList) resp).chunkIDs;
-                            } else if (resp instanceof ChunkList) {
-                                //System.out.println("<--- Rvd Wanted IDs");
-                                // Add to the Summary List
-                                for (Chunk c : ((ChunkList) resp).chunks) {
-                                    chunkIDs.add(c.chunkID);
-                                    chunks.put(c.chunkID, c);
-                                    rvdChunks++;
-                                }
-                                //System.out.println("<---" + ((ChunkList) resp).chunks);
-                            }
-                        } catch (IOException e) {
-                            System.out.println("Cannot Read Message From the Server");
-                        } catch (ClassNotFoundException e) {
-                            System.out.println("No Such Class Exists");
+                        state = 1;
+                    } else if (state == 1 && resp instanceof ChunkList) {
+                        System.out.print("Client Rvd Wanted IDs <--- ");
+                        // Add to the Summary List
+                        for (Chunk c : ((ChunkList) resp).chunks) {
+                            chunkIDs.add(c.chunkID);
+                            chunks.put(c.chunkID, c);
+                            rvdChunks++;
+                            System.out.print(c.chunkID + " ");
                         }
-                        if(rvdChunks == numberOfChunks)
-                        {
-                            //keepRunning = false;
-                            System.out.println("Ending the loop");
-                        }
+                        System.out.println();
+                        System.out.println("Chunk List" + chunkIDs);
+
+                        dataTransferred = true;
+
+                        // Close the Connection Now
+                        in.close();
+                        out.close();
+                        downloadNeighbourSocket.close();
                     }
-                } catch (IOException e) {
-                    System.out.println("Cannot Connect to the In/Out Streams");
                 }
             } catch (IOException e) {
-                try{
+                try {
                     Thread.sleep(500);
-                }catch (InterruptedException e1){
+                } catch (InterruptedException e1) {
                     System.out.println("Cannot Pause the Thread");
                 }
+            } catch (ClassNotFoundException c) {
+                System.out.println(c);
             }
+
+            // Check if all Chunks Received
+            if (rvdChunks == numberOfChunks) {
+                incomplete = false;
+                System.out.println(chunkIDs);
+                try {
+                    mergeFiles();
+                } catch (IOException e) {
+                    System.out.println(e);
+                }
+            }
+        }
+    }
+
+    public void mergeFiles() throws IOException{
+        // Create a New File Output Stream at this path
+        FileOutputStream fos = new FileOutputStream(clientPort + "." +  fileType);
+        try(BufferedOutputStream mergeStream = new BufferedOutputStream(fos)){
+            for(Chunk c : chunks.values()){
+                mergeStream.write(c.bytes);
+            }
+            // Close the Merge Stream
+            mergeStream.close();
         }
     }
 

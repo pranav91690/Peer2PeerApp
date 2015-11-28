@@ -22,11 +22,13 @@ public class Server {
         // Step 1 -- Split the File
         try {
             // We have to create a File Object from whatever file is given to us...Say this is given from args
-            File file = new File("Project3.pdf");
+            File file = new File("8.jpg");
 
             // Split the File
             server.splitFile(file);
 
+            System.out.println(server.chunks.size());
+            System.out.println(server.numberOfChunks);
             // Step 2 -- Run the Server and wait for incoming requests
             server.run(4000);
         }catch (Exception e){
@@ -47,7 +49,7 @@ public class Server {
                     Socket clientSocket = server.accept();
 
                     // Create a New Thread to Serve the Client
-                    Runnable r = new SendChunks(clientSocket, chunks, numberOfChunks, "pdf", out);
+                    Runnable r = new SendChunks(clientSocket, chunks, numberOfChunks, "jpg", out);
 
                     // Start a new Thread with chunks
                     new Thread(r).start();
@@ -93,16 +95,6 @@ public class Server {
 
                 // Decrease the File Size
                 fileSize -= chunkSize;
-
-// ************  Do we Need Split Files in the Local Machine ******************************************
-//                //Write each chunk of data into separate file with different number in name
-//                File newFile = new File(file.getParent(), name + "." + String.format("%03d", partCounter));
-//
-//                //Create an File Output Stream
-//                FileOutputStream out = new FileOutputStream(newFile);
-//                out.write(buffer);
-//                out.close();
-// ****************************************************************************************************
 
                 // Store the chunks in the Master List
                 Chunk chunk = new Chunk(partCounter, buffer);
