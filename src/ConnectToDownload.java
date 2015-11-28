@@ -56,7 +56,13 @@ public class ConnectToDownload implements Runnable {
                 out.flush();
                 in = new ObjectInputStream(downloadNeighbourSocket.getInputStream());
 
+
+                int count = 5000;
                 while(!dataTransferred) {
+                    count--;
+                    if(count == 0){
+                        dataTransferred = true;
+                    }
                     // Receive the Summary List//Chunks ID's
                     Object resp = null;
                     HashSet<Integer> rvdIDs = null;
@@ -94,6 +100,7 @@ public class ConnectToDownload implements Runnable {
                         }
                         System.out.println();
                         System.out.println("Chunk List" + chunkIDs);
+                        System.out.println(rvdChunks);
 
                         dataTransferred = true;
 
@@ -114,8 +121,9 @@ public class ConnectToDownload implements Runnable {
             }
 
             // Check if all Chunks Received
-            if (rvdChunks == numberOfChunks) {
+            if (chunkIDs.size() == numberOfChunks) {
                 incomplete = false;
+                System.out.println("Finished Downloading All the Chunks");
                 System.out.println(chunkIDs);
                 try {
                     mergeFiles();
@@ -135,6 +143,7 @@ public class ConnectToDownload implements Runnable {
             }
             // Close the Merge Stream
             mergeStream.close();
+            System.out.println("Merged all chunks");
         }
     }
 

@@ -22,7 +22,7 @@ public class Server {
         // Step 1 -- Split the File
         try {
             // We have to create a File Object from whatever file is given to us...Say this is given from args
-            File file = new File("8.jpg");
+            File file = new File("B_o_B-Ghost_In_The_Machine.mp3");
 
             // Split the File
             server.splitFile(file);
@@ -43,13 +43,21 @@ public class Server {
             System.out.println("Server Started Listening on 4000");
 
             boolean keepRunning = true; //Keep Listening for Client Requests until the Server is not closed
+            int numberOfPeers = 0;
+            int numberOfPeersMod = 0;
             while (keepRunning) {
                 try {
                     // Accept the clientSocket request from the client, (to which it is to send chunks)
                     Socket clientSocket = server.accept();
+                    numberOfPeers++;
+                    numberOfPeersMod = numberOfPeers % 5;
+                    if(numberOfPeersMod == 0)
+                        numberOfPeersMod = 5;
+
+
 
                     // Create a New Thread to Serve the Client
-                    Runnable r = new SendChunks(clientSocket, chunks, numberOfChunks, "jpg", out);
+                    Runnable r = new SendChunks(clientSocket, chunks, numberOfChunks, "mp3",numberOfPeersMod, out);
 
                     // Start a new Thread with chunks
                     new Thread(r).start();

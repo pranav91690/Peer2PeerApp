@@ -17,14 +17,16 @@ public class SendChunks implements Runnable{
     String fileType;
     // Output Stream
     ObjectOutputStream out;
+    int numberOfPeers;
 
     public SendChunks(Socket clientSocket, ArrayList<Chunk> chunks, int numberOfChunks,
-                      String fileType, ObjectOutputStream out) {
+                      String fileType,int numberOfPeers, ObjectOutputStream out) {
         this.clientSocket = clientSocket;
         this.chunks = chunks;
         this.numberOfChunks = numberOfChunks;
         this.fileType = fileType;
         this.out = out;
+        this.numberOfPeers = numberOfPeers;
     }
 
     public void run(){
@@ -33,13 +35,39 @@ public class SendChunks implements Runnable{
         ArrayList<Chunk> chunksToBeSent = new ArrayList<>();
 
         // Randomly Select 3 Chunks
+        int noOfRandomChunks = (numberOfChunks/5);
+
         ArrayList<Integer> list = new ArrayList<>();
         for (int i=0; i<chunks.size(); i++) {
             list.add(i);
         }
+        int startIndex = noOfRandomChunks*(numberOfPeers-1);
+        int endIndex;
+        if(numberOfPeers == 5)
+        {
+            endIndex = numberOfChunks;
+        }
+        else
+        {
+            endIndex = (noOfRandomChunks*numberOfPeers);
+        }
 
+        System.out.println(startIndex);
+        for (int i=startIndex; i< endIndex; i++) {
+            chunksToBeSent.add(this.chunks.get(i));
+        }
+        if(numberOfChunks%5 != 0)
+        {
+            noOfRandomChunks += 1;
+        }
+
+        //System.out.println(noOfRandomChunks);
+        if(noOfRandomChunks <3)
+        {
+            noOfRandomChunks = 3;
+        }
         Collections.shuffle(list);
-        for (int i=0; i<3; i++) {
+        for (int i=0; i< noOfRandomChunks; i++) {
             int randomIndex = list.get(i);
             chunksToBeSent.add(this.chunks.get(randomIndex));
         }
