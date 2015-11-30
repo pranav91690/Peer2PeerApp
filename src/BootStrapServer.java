@@ -3,7 +3,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -16,10 +15,7 @@ public class BootStrapServer {
     ObjectInputStream in;
     int currentClient;
 
-    // BootStrapServer -- Functionality --
-    // - Accept Connection From Peer Return Client Listening Port
     public static void main(String args[]){
-        // Create a New Object
         BootStrapServer server = new BootStrapServer();
         int peer = 1;
         server.clients = new HashMap<>();
@@ -78,9 +74,7 @@ public class BootStrapServer {
 
                                 currentClient++;
                             }
-
-                            // Complete the Circle - Can Get the Max Number of Peers in our Circle
-                            // from the User
+                            // Complete the Circle - Can Get the Max Number of Peers in our Circle from the User
                             if (currentClient == 6) {
                                 clients.put(5,firstPort);
                             }
@@ -92,9 +86,6 @@ public class BootStrapServer {
                                 portNumber = clients.get(clientNo);
                             }
 
-                            // Create a New Thread to Return the Listening Port
-//                            Runnable r = new returnListeningPort(client, portNumber);
-//                            new Thread(r).start();
                             // Send the Port Number to the Client
                             try{
                                 out.writeInt(portNumber);
@@ -109,7 +100,7 @@ public class BootStrapServer {
                             System.out.println("Cannot Read the Port Number of the Client");
                         }
                     }catch (IOException e){
-                        System.out.println("Cannot Iniatate the Streams");
+                        System.out.println("Cannot Initiate the Streams");
                     }
                 } catch (IOException e){
                     System.out.println("Cannot Accept Connection From the Client");

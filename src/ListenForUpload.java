@@ -12,28 +12,34 @@ import java.util.HashSet;
  */
 
 // This is the thread that listens to the Upload Neighbour
-public class ListenForUpload implements Runnable {
+public class ListenForUpload implements Runnable
+{
     int port;
     ObjectInputStream in;
     ObjectOutputStream out;
     HashMap<Integer,Chunk> chunks;
     HashSet<Integer> chunkIDs;
 
-    public ListenForUpload(int port,HashMap<Integer,Chunk> chunks, HashSet<Integer> chunkIDs) {
+    public ListenForUpload(int port,HashMap<Integer,Chunk> chunks, HashSet<Integer> chunkIDs)
+    {
         this.port = port;
         this.chunks = chunks;
         this.chunkIDs = chunkIDs;
     }
 
 
-    public void run() {
+    public void run()
+    {
         ServerSocket peerServer = null;
-        try {
+        try
+        {
             peerServer = new ServerSocket(port);
             System.out.println("---> Client Started Listening on Port " + port);
-            while (true) {
+            while (true)
+            {
                 // Accept a new Connection
-                try {
+                try
+                {
                     Socket uploadNeighbour = peerServer.accept();
                     System.out.println("Client Accepted Upload Neighbour Request");
                     // Receive Requests and Send Replies Back
@@ -50,11 +56,13 @@ public class ListenForUpload implements Runnable {
 
                     // Receive Wanted ID's
                     resp = in.readObject();
-                    if (resp instanceof SummaryList) {
+                    if (resp instanceof SummaryList)
+                    {
                         HashSet<Chunk> reqChunks = new HashSet<>();
                         // Send List of Requested Objects
                         System.out.print("Server Sent IDs ---> ");
-                        for (Integer i : ((SummaryList) resp).chunkIDs) {
+                        for (Integer i : ((SummaryList) resp).chunkIDs)
+                        {
                             System.out.print(i + " ");
                             reqChunks.add(chunks.get(i));
                         }
@@ -62,13 +70,19 @@ public class ListenForUpload implements Runnable {
                         out.writeObject(new ChunkList(reqChunks));
                         out.flush();
                     }
-                } catch (IOException e) {
+                }
+                catch (IOException e)
+                {
                     System.out.println(e);
-                } catch (ClassNotFoundException c) {
+                }
+                catch (ClassNotFoundException c)
+                {
                     System.out.println(c);
                 }
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e)
+        {
             System.out.println(e);
         }
     }

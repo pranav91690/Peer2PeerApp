@@ -7,16 +7,11 @@ import java.util.*;
  * Created by SampathYadav on 11/19/2015.
  */
 public class SendChunks implements Runnable{
-    // Client Socket
-    Socket clientSocket;
-    // List of Chunks
-    ArrayList<Chunk> chunks;
-    // Number of Chunks
-    int numberOfChunks;
-    // File Type
-    String fileType;
-    // Output Stream
-    ObjectOutputStream out;
+    Socket clientSocket;        // Client Socket
+    ArrayList<Chunk> chunks;    // List of Chunks
+    int numberOfChunks;         // Number of Chunks
+    String fileType;            // File Type
+    ObjectOutputStream out;     // Output Stream
     int numberOfPeers;
 
     public SendChunks(Socket clientSocket, ArrayList<Chunk> chunks, int numberOfChunks,
@@ -30,12 +25,8 @@ public class SendChunks implements Runnable{
     }
 
     public void run(){
-        // We Should Create a Object of FileOwnerToPeer and serialize it into a byte stream
-        // For that Randomly Select a Number of Chunks - Let's 3 random chunks to be sent to the Peer
         ArrayList<Chunk> chunksToBeSent = new ArrayList<>();
-
-        // Randomly Select 3 Chunks
-        int noOfRandomChunks = (numberOfChunks/5);
+        int noOfRandomChunks = (numberOfChunks/5);      //Deciding the number of chunks to send to each client
 
         ArrayList<Integer> list = new ArrayList<>();
         for (int i=0; i<chunks.size(); i++) {
@@ -52,7 +43,6 @@ public class SendChunks implements Runnable{
             endIndex = (noOfRandomChunks*numberOfPeers);
         }
 
-        System.out.println(startIndex);
         for (int i=startIndex; i< endIndex; i++) {
             chunksToBeSent.add(this.chunks.get(i));
         }
@@ -61,13 +51,13 @@ public class SendChunks implements Runnable{
             noOfRandomChunks += 1;
         }
 
-        //System.out.println(noOfRandomChunks);
         if(noOfRandomChunks <3)
         {
             noOfRandomChunks = 3;
         }
         Collections.shuffle(list);
-        for (int i=0; i< noOfRandomChunks; i++) {
+        for (int i=0; i< noOfRandomChunks; i++)
+        {
             int randomIndex = list.get(i);
             chunksToBeSent.add(this.chunks.get(randomIndex));
         }

@@ -2,45 +2,35 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-
-
 /**
  * Created by pranav on 11/8/15.
  */
 public class Server {
-    // Server Input and OutPut Streams
-    ObjectOutputStream out;  //stream write to the socket
-
-    // Master List of Chunk and their id's
-    ArrayList<Chunk> chunks;
+    ObjectOutputStream out;     //stream write to the socket
+    ArrayList<Chunk> chunks;    // Master List of Chunk and their id's
     int numberOfChunks;
 
-    // Start a TCP Connection and make it listen to a port
     public static void main(String[] args){
         Server server = new Server();
-
-        // Step 1 -- Split the File
-        try {
-            // We have to create a File Object from whatever file is given to us...Say this is given from args
-            File file = new File("B_o_B-Ghost_In_The_Machine.mp3");
-
-            // Split the File
-            server.splitFile(file);
-
-            System.out.println(server.chunks.size());
-            System.out.println(server.numberOfChunks);
-            // Step 2 -- Run the Server and wait for incoming requests
-            server.run(4000);
-        }catch (Exception e){
+        //-- Step 1 -- Split the File
+        try
+        {
+            File file = new File(args[1]);                  //Passing the path of the file to be transferred
+            server.splitFile(file);                         // Split the File
+            // -- Step 2 -- Run the Server and wait for incoming requests
+            server.run(Integer.parseInt(args[0]),args[2]);
+        }
+        catch (Exception e)
+        {
             System.out.println("Cannot Open the File");
         }
     }
 
-    public void run(int serverPort){
+    public void run(int serverPort, String fileExtension){
         ServerSocket server = null;
         try {
             server = new ServerSocket(serverPort);
-            System.out.println("Server Started Listening on 4000");
+            System.out.println("Server Started Listening on " + serverPort);
 
             boolean keepRunning = true; //Keep Listening for Client Requests until the Server is not closed
             int numberOfPeers = 0;
@@ -54,13 +44,9 @@ public class Server {
                     if(numberOfPeersMod == 0)
                         numberOfPeersMod = 5;
 
-
-
                     // Create a New Thread to Serve the Client
-                    Runnable r = new SendChunks(clientSocket, chunks, numberOfChunks, "mp3",numberOfPeersMod, out);
-
-                    // Start a new Thread with chunks
-                    new Thread(r).start();
+                    Runnable r = new SendChunks(clientSocket, chunks, numberOfChunks, fileExtension,numberOfPeersMod, out);
+                    new Thread(r).start();  //Start a new Thread with chunks
 
                 } catch (IOException e) {
                     System.out.println("Cannot Accept Client Connection");
@@ -75,7 +61,7 @@ public class Server {
 
     public void splitFile(File file){
         int partCounter = 1;
-        int sizeOfFiles = 100 * 1024; // 100KB
+        int sizeOfFiles = 100 * 1024;                                   //Breaking the file into chunks of size 100KB
         byte[] buffer;
 
         int fileSize = (int)file.length();
@@ -86,29 +72,14 @@ public class Server {
         try{
             // Read the Data into a File Stream
             inputStream = new FileInputStream(file);
-
-            // Get the Name of the String
-            String name = file.getName();
-
-            // Variable to Store the Number of Bytes in a Chunk
-            int chunkSize = 0;
-
-            // While there is still data to read
+            int chunkSize = 0;                                          // Variable to Store the Number of Bytes in a Chunk
             while(fileSize > 0){
-                // Initiate the Buffer Array
-                buffer = new byte[sizeOfFiles];
-
-                // Read a chunk from the stream
-                chunkSize = inputStream.read(buffer, 0, sizeOfFiles);
-
-                // Decrease the File Size
-                fileSize -= chunkSize;
-
-                // Store the chunks in the Master List
-                Chunk chunk = new Chunk(partCounter, buffer);
+                buffer = new byte[sizeOfFiles];                         // Initiate the Buffer Array
+                chunkSize = inputStream.read(buffer, 0, sizeOfFiles);   // Read a chunk from the stream
+                fileSize -= chunkSize;                                  // Decrease the File Size
+                Chunk chunk = new Chunk(partCounter, buffer);           // Store the chunks in the Master List
                 chunks.add(chunk);
                 numberOfChunks++;
-
                 partCounter++;
             }
         }catch (IOException e){

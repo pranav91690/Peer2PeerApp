@@ -9,69 +9,47 @@ import java.util.List;
 /**
  * Created by pranav on 11/8/15.
  */
-public class Client {
-    // The Input and Output Streams for the Client
+public class Client
+{
+    // --- Initialize the variables that are to be used
+
     ObjectOutputStream  out;            //stream write to the socket
     ObjectInputStream   in;             //stream read from the socket
-
-    // Client Listening Port
-    int clientListeningPort;
-
-    // File Owner Listening Port
-    int serverListeningPort;
-
-    // Download Neighbour Listening Port
+    int clientListeningPort;            // Client Listening Port
+    int serverListeningPort;            // File Owner Listening Port
     int downloadNeighbourPort;          //Get this from the BootStrap Server
-
-    // Number of Chunks
     int numberOfChunks;                 //Number of Chunks in the Input File
-
-    // Actual Chunk Data
     HashMap<Integer,Chunk> chunks;      //Present List of Chunks
-
-    // Chunk Summary List
     HashSet<Integer> chunkIDs;          //Summary List of the Chunk ID's
-
-    // File Type
-    String fileType;
-
-    // Received Chunks
-    int rvdChunks;
+    String fileType;                    // File Type
+    int rvdChunks;                      // Received Chunks
 
 
-    public static void main(String[] args) {
-        // Create a Client Object
-        Client client = new Client();
-
-        // Instantiate the FileOwner and Client Listening Ports
-        client.clientListeningPort = Integer.parseInt(args[0]);
-
-        // Register with the BootStrap Server, Give the Listening Port and the Receive the
-        // Download Neighbour Port
-
-        //client.downloadNeighbourPort = Integer.parseInt(args[1]);
-
-        client.serverListeningPort = 4000;
-
-        // Run the Client
-        client.run();
+    public static void main(String[] args)
+    {
+        Client client = new Client();                           //Creating a client object
+        client.clientListeningPort = Integer.parseInt(args[0]); // Instantiate the FileOwner and Client Listening Ports
+        client.serverListeningPort = Integer.parseInt(args[1]); //Getting the port on which the server is listening
+        client.run();                                           //Running the client
     }
 
-    void run(){
-        // Connect to BootStrap Server. Send the Listening Port and get the Download Neighbour Listening Port
-        // Initiate the Input and Output Buffer Streams for the Socket
-        // Send the Listening Port and Get the Download Neighbour Port
-        // Initiate the Input and Output Buffer Streams for the Socket
-        int dwnN = -1;
+    void run()
+    {
+        int dwnN = -1;                                          //Initiating Download neighbour port as -1
         Socket bootStrap = null;
-        while (dwnN == -1) {
-            try {
+        while (dwnN == -1)
+        {
+            try
+            {
                 Thread.sleep(1000);
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e)
+            {
                 System.out.println(e);
             }
 
-            try {
+            try
+            {
                 bootStrap = new Socket("localhost",4100);
                 System.out.println("Successfully Connected to the BootStrap Server");
 
@@ -79,11 +57,11 @@ public class Client {
                 out.flush();
                 in = new ObjectInputStream(bootStrap.getInputStream());
 
-                // Send the Client Listening Port
-                out.writeInt(clientListeningPort);
+                out.writeInt(clientListeningPort);          //Sending the Client Listening Port
                 out.flush();
                 dwnN = in.readInt();
-                if (dwnN != -1) {
+                if (dwnN != -1)
+                {
                     downloadNeighbourPort = dwnN;
                 }
 
@@ -91,68 +69,65 @@ public class Client {
                 out.close();
                 bootStrap.close();
 
-            } catch (IOException e) {
+            } catch (IOException e)
+            {
                 System.out.println("Cannot Communicate with the Client");
                 break;
             }
         }
 
         System.out.println("Connect to Server");
-        // Start the Client Process Now
-        // Step 1  -- Connect to the File Owner Server -- Receive Chunks and setup the Client ID list
         Socket ServerSocket = null;
-        try {
-            // Create a Socket to connect to the Server
+        try
+        {
             ServerSocket = new Socket("localhost", serverListeningPort);
-
-            try {
+            try
+            {
                 // Initiate the Input and Output Buffer Streams for the Socket
                 out = new ObjectOutputStream(ServerSocket.getOutputStream());
                 out.flush();
                 in = new ObjectInputStream(ServerSocket.getInputStream());
-
-                // Deserialize the Data Received From the Server Output Stream Here
                 Object object = null;
-                try {
+                try
+                {
                     System.out.println("Received Data from the Server");
                     object = in.readObject();
-                    if (object instanceof FileOwnerToPeer) {
-                        // Extract the Information and Store it
+                    if (object instanceof FileOwnerToPeer)
+                    {
                         numberOfChunks = ((FileOwnerToPeer) object).numberOfChunks;
-                        // Initiate the Array
                         chunks = new HashMap<>();
                         rvdChunks = ((FileOwnerToPeer) object).chunks.size();
-                        // Update the List
-                        for( Chunk c : ((FileOwnerToPeer) object).chunks){
+                        for( Chunk c : ((FileOwnerToPeer) object).chunks)
+                        {
                             chunks.put(c.chunkID, c);
                         }
                         fileType = ((FileOwnerToPeer) object).fileType;
                     }
-
-                    // Create the Summary File and Update it
                     chunkIDs = new HashSet<>();
                     updateSummaryList();
 
                     System.out.println(chunkIDs);
 
-                    // Step 2 -- Start the Server/Client Threads
-                    // Create a Thread to Keep Listening on ClientListeningPort
+                    //Starting a new thread to listen to the neighbour port to upload the desired chunks
                     Runnable r1 = new ListenForUpload(clientListeningPort,chunks,chunkIDs);
                     new Thread(r1).start();
 
-                    // Get the Download Neighbour From the BootStrap Server
-                    // Start this Thread only if we get a non negative value
+                    //Starting a new thread to talk to the neighbour port to ask for the desired chunks
                     Runnable r2 = new ConnectToDownload(downloadNeighbourPort, chunks, chunkIDs,numberOfChunks,
                             clientListeningPort,fileType, rvdChunks);
                     new Thread(r2).start();
-
-
-                } catch (IOException e) {
+                }
+                catch (IOException e)
+                {
                     System.out.println("Cant Read Object");
-                } catch (ClassNotFoundException e) {
+                }
+                catch (ClassNotFoundException e)
+                {
                     System.out.println("Unrecognized Object Received from the Stream");
                 }
-            }catch (IOException e){
+            }
+            catch (IOException e)
+            {
                 System.out.println("Cannot Open Connection to the ServerPort");
             }
 
@@ -161,9 +136,12 @@ public class Client {
         }
     }
 
-    public void updateSummaryList(){
-        if(!chunks.isEmpty()) {
-            for (Chunk c : chunks.values()) {
+    public void updateSummaryList()
+    {
+        if(!chunks.isEmpty())
+        {
+            for (Chunk c : chunks.values())
+            {
                 chunkIDs.add(c.chunkID);
             }
         }

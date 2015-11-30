@@ -33,7 +33,6 @@ public class ConnectToDownload implements Runnable {
     }
 
     public void run(){
-        // Keep Connecting to the Download Neighbour for Data
         boolean incomplete = true;
         while(incomplete) {
             // Wait Some Time Before Trying to Connect Again
@@ -75,14 +74,12 @@ public class ConnectToDownload implements Runnable {
                             // Get the Missing Chunks
                             rvdIDs.removeAll(chunkIDs);
                             if (!rvdIDs.isEmpty()) {
-                                // Send a Request to the Download Peer
-                                //System.out.println(rvdIDs);
+                                // Send a Request to the Download Peersss
                                 SummaryList wantedIDs = new SummaryList(rvdIDs);
                                 try {
                                     out.writeObject(wantedIDs);
                                     out.flush();
                                     System.out.println(rvdIDs + " Client ---> Sent Req for Required ID's");
-                                    //System.out.println("--->" + rvdIDs);
                                 } catch (IOException e) {
                                     System.out.println("Cannot Send ID Request");
                                 }
